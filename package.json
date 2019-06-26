@@ -41,11 +41,20 @@
 				}
 			}
 		},
+		"viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "isam-explorer",
+                    "title": "ISAM Explorer",
+                    "icon": "resources/package-explorer.svg"
+                }
+            ]
+        },
 		"views": {
 			"explorer": [
 				{
 					"id": "isamExplorer",
-					"name": "ISAM Explorer"
+					"name": "ISAM explorer"
 				}
 			]
 		}
