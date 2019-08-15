@@ -8,20 +8,29 @@ import { IsamResourceType } from './IsamResourceType';
 import { IsamEnvironmentType } from './IsamEnvironmentType';
 import { IsamModel } from './IsamModel';
 import { IsamTreeDataProvider } from './IsamTreeDataProvider';
+import { IsamFS } from './IsamFileSystemProvider';
+import { MiddlewareTreeModel } from './middleware/MiddlewareTreeModel';
+import { MiddlewareTreeNode } from './middleware/MiddlewareTreeNode';
+import { EnvironmentBuilder } from './middleware/EnvironmentBuilder';
+import { MiddleWareTreeDataProvider } from './middleware/MiddlewareTreeDataProvider';
 
 export class IsamExplorer {
-
-	private isamViewer: vscode.TreeView<IsamNode>;
+	private middlewareViewer: vscode.TreeView<MiddlewareTreeNode>;
 	private isamEnvironments: IsamEnvironment[] = new Array();
+	private isamFileSystemProvider: IsamFS;
 
 	constructor(context: vscode.ExtensionContext) {
 		/* Please note that login information is hardcoded only for this example purpose and recommended not to do it in general. */
-		this.buildIsamEnvironments();
-		const isamModel = new IsamModel(this.isamEnvironments);
-		const treeDataProvider = new IsamTreeDataProvider(isamModel);
-		context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('isam', treeDataProvider));
+		var envBuilder = new EnvironmentBuilder();
 
-		this.isamViewer = vscode.window.createTreeView('isamExplorer', { treeDataProvider });
+		const middlewareTreeModel = new MiddlewareTreeModel(envBuilder.buildIsamEnvironments(), envBuilder.buildDatapowerGwEnvironments());		
+		const treeDataProvider = new MiddleWareTreeDataProvider(middlewareTreeModel);
+		this.middlewareViewer = vscode.window.createTreeView('isamExplorer', { treeDataProvider });
+
+		this.isamFileSystemProvider = new IsamFS(middlewareTreeModel);
+		context.subscriptions.push(vscode.workspace.registerFileSystemProvider('isam', this.isamFileSystemProvider, { isCaseSensitive: true }));
+		this.initIsamFS(this.isamFileSystemProvider);
+				
 
 		vscode.commands.registerCommand('isamExplorer.refresh', () => treeDataProvider.refresh());
 		vscode.commands.registerCommand('isamExplorer.openIsamResource', resource => this.openResource(resource));
@@ -42,71 +51,33 @@ export class IsamExplorer {
 		console.log("reveal()");
 		const node = this.getNode();
 		if (node) {
-			return this.isamViewer.reveal(node);
+			return this.middlewareViewer.reveal(node);
 		}
 		return null;
 	}
 
-	private getNode(): IsamNode | null {
+	private getNode(): MiddlewareTreeNode | null {
 		console.log("getNode()");
 		if (vscode.window.activeTextEditor) {
 			if (vscode.window.activeTextEditor.document.uri.scheme === 'isam') {
-				return this.buildIsamFileNode(vscode.window.activeTextEditor.document.uri);
+				return this.buildMiddlewareFileNode(vscode.window.activeTextEditor.document.uri);
 			}
 		}
 		return null;
 	}
-	buildIsamFileNode(uri: vscode.Uri): IsamNode | null {
-		console.log("buildIsamFileNode()")
+	buildMiddlewareFileNode(uri: vscode.Uri): MiddlewareTreeNode | null {
+		console.log("buildMiddlewareFileNode()")
 		let index: number = this.isamEnvironments.findIndex(env => env.type === IsamEnvironmentType.DEV);
 
-		const isamResFile: IsamResource = {
-			environment: this.isamEnvironments[index], // TODO find a way to dynamically figure out the correct environment. check uri against all know environments?
-			name: IsamResourceType.MAPPING_RULES.toString(),
-			path: uri.toString(),
-			type: IsamResourceType.MAPPING_RULES,
-			uri: vscode.Uri.parse("isam:" + uri.toString())
-		};
-		const isamNodeFile: IsamNode = {
+		const isamNodeFile: MiddlewareTreeNode = {
 			isDirectory: true,
-			resource: isamResFile
+			resource: vscode.Uri.parse("isam:" + uri.toString())
 		};
 		return isamNodeFile;
 	}
 
-	buildIsamEnvironments() {
-		const isamEnvDev: IsamEnvironment = {
-			name: "DEV",
-			uri: "https://isamappvd01-admin.inprod.ept.lu",
-			username: "myuser",
-			password: "mypassword",
-			type: IsamEnvironmentType.DEV
-		};
-		const isamEnvTest: IsamEnvironment = {
-			name: "TEST",
-			uri: "https://isamappvt01-admin.inprod.ept.lu",
-			username: "myuser",
-			password: "mypassword",
-			type: IsamEnvironmentType.TEST
-		};
-		const isamEnvUat: IsamEnvironment = {
-			name: "UAT",
-			uri: "https://isamappva01-admin.inprod.ept.lu",
-			username: "myuser",
-			password: "mypassword",
-			type: IsamEnvironmentType.UAT
-		};
-		const isamEnvProd: IsamEnvironment = {
-			name: "PROD",
-			uri: "https://isamappvp01-admin.inprod.ept.lu",
-			username: "myuser",
-			password: "mypassword",
-			type: IsamEnvironmentType.PROD
-		};
-
-		this.isamEnvironments.push(isamEnvDev);
-		this.isamEnvironments.push(isamEnvTest);
-		this.isamEnvironments.push(isamEnvUat);
-		this.isamEnvironments.push(isamEnvProd);
+	initIsamFS(isamFS: IsamFS) {
+		isamFS.createDirectory(vscode.Uri.parse("memfs:/ISAM/"));		
+		isamFS.createDirectory(vscode.Uri.parse("memfs:/DATAPOWER/"));
 	}
 }
