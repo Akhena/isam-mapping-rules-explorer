@@ -2,12 +2,15 @@ import * as vscode from 'vscode';
 
 import { Environment } from "./Environment";
 import { MiddlewareTreeNode } from "./MiddlewareTreeNode";
-import { IsamService } from '../isamService';
+import { IsamService } from '../services/isamService';
+import { DatapowerService } from '../services/datapowerService';
 
 export class MiddlewareTreeModel {
     private isamEnvironments: Environment[] = new Array();
     private datapowerEnvironments: Environment[] = new Array();
+    
     private isamService: IsamService = new IsamService();
+    private datapowerService: DatapowerService = new DatapowerService();
 
     constructor(isamEnvs: Environment[], dpEnvs: Environment[]) {
         this.isamEnvironments = this.isamEnvironments.concat(isamEnvs);
@@ -26,16 +29,16 @@ export class MiddlewareTreeModel {
             isDirectory: true,
             resource: vscode.Uri.parse("isam:DATAPOWER")
         };
-        mdwRootNodeArray.push(isamNode);
+        mdwRootNodeArray.push(dpNode);
 
+        console.log("built " + mdwRootNodeArray.length + " root nodes");
         return Promise.resolve(mdwRootNodeArray);
     }
 
     public getChildren(node: MiddlewareTreeNode): Thenable<MiddlewareTreeNode[]> {
         let childrenNodeArray: MiddlewareTreeNode[] = new Array();
 
-        console.log("getChildren()");
-        console.log(node);
+        console.log("MiddleTreeModel.getChildren() for " + (node.isDirectory ? "directory " : "file ") + node.resource.toString());
 
         if (node.isDirectory) {
             let splitPath = node.resource.path.split("/");
@@ -50,17 +53,22 @@ export class MiddlewareTreeModel {
                     }
                     break;
                 case "datapower":
-                    childrenNodeArray = childrenNodeArray.concat(this.createDatapowerEnvironmentsTreeNodes());
+                    if (splitPath.length === 1) {
+                        childrenNodeArray = childrenNodeArray.concat(this.createDatapowerEnvironmentsTreeNodes());
+                    } else if (splitPath.length === 2) {
+                        childrenNodeArray = childrenNodeArray.concat(this.createDatapowerFileTypesTreeNodes(node));
+                    }
                     break;
                 default:
-                    console.log("node is file");
+                    console.error("node is file");
             }
         }
         else {
-            console.log("node is file");
+            console.warn("node is file");
         }
         return Promise.resolve(childrenNodeArray);
     }
+    
     private createIsamFilesTreeNodes(parentNode: MiddlewareTreeNode): MiddlewareTreeNode[] {
         let isamFilesChildrenArray: MiddlewareTreeNode[] = new Array();
 
@@ -69,7 +77,6 @@ export class MiddlewareTreeModel {
         let splitPath = parentNode.resource.path.split("/");
         switch (splitPath[2]) {
             case "MAPPING-RULES":
-                // TODO
                 this.isamService.getMappingRules(currentEnv).forEach(function (file) {
                     isamFilesChildrenArray.push({
                         isDirectory: false,
@@ -78,6 +85,12 @@ export class MiddlewareTreeModel {
                 });
                 break;
             case "RP-CONFIGS":
+                this.isamService.getReverseProxiesList(currentEnv).forEach(function (rpConfFile) {
+                    isamFilesChildrenArray.push({
+                        isDirectory: false,
+                        resource: vscode.Uri.parse(parentNode.resource.scheme + ":" + parentNode.resource.path + "/" + rpConfFile)
+                    });
+                });
                 break;
         }
 
@@ -150,5 +163,18 @@ export class MiddlewareTreeModel {
         });
 
         return environmentChildrenArray;
+    }
+
+    private createDatapowerFileTypesTreeNodes(parentNode: MiddlewareTreeNode): ConcatArray<MiddlewareTreeNode> {
+        let dpFileTypesChildrenArray: MiddlewareTreeNode[] = new Array();
+
+        this.datapowerService.getFilesystemFolders(this.getCurrentEnvironment(parentNode)).forEach(folder => {
+            dpFileTypesChildrenArray.push({
+                isDirectory: true,
+                resource: vscode.Uri.parse(parentNode.resource.scheme + ":" + parentNode.resource.path + "/" + folder)
+            });            
+        });
+        
+        return dpFileTypesChildrenArray;
     }
 }

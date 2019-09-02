@@ -13,6 +13,7 @@ export class IsamFS implements vscode.FileSystemProvider {
         return this._lookup(uri, false);
     }
     readDirectory(uri: vscode.Uri): [string, vscode.FileType][] | Thenable<[string, vscode.FileType][]> {
+        console.log("readDirectory()");
         const entry = this._lookupAsDirectory(uri, false);
         let result: [string, vscode.FileType][] = [];
         for (const [name, child] of entry.entries) {
@@ -23,6 +24,7 @@ export class IsamFS implements vscode.FileSystemProvider {
 
     // --- manage file contents
     readFile(uri: vscode.Uri): Uint8Array | Thenable<Uint8Array> {
+        console.log("readFile()");
         const data = this._lookupAsFile(uri, false).data;
         if (data) {
             return data;
@@ -30,6 +32,7 @@ export class IsamFS implements vscode.FileSystemProvider {
         throw vscode.FileSystemError.FileNotFound();
     }
     writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean; overwrite: boolean; }): void | Thenable<void> {
+        console.log("writeFile()");
         let basename = path.posix.basename(uri.path);
         let parent = this._lookupParentDirectory(uri);
         let entry = parent.entries.get(basename);
@@ -104,6 +107,7 @@ export class IsamFS implements vscode.FileSystemProvider {
     private _lookup(uri: vscode.Uri, silent: false): Entry;
     private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined;
     private _lookup(uri: vscode.Uri, silent: boolean): Entry | undefined {
+        console.log("lookup()");
         let parts = uri.path.split('/');
         let entry: Entry = this.root;
         for (const part of parts) {
@@ -127,6 +131,7 @@ export class IsamFS implements vscode.FileSystemProvider {
     }
 
     private _lookupAsDirectory(uri: vscode.Uri, silent: boolean): Directory {
+        console.log("_lookupAsDirectory()");
         let entry = this._lookup(uri, silent);
         if (entry instanceof Directory) {
             return entry;
@@ -135,6 +140,7 @@ export class IsamFS implements vscode.FileSystemProvider {
     }
 
     private _lookupAsFile(uri: vscode.Uri, silent: boolean): File {
+        console.log("_lookupAsFile()");
         let entry = this._lookup(uri, silent);
         if (entry instanceof File) {
             return entry;
@@ -143,6 +149,7 @@ export class IsamFS implements vscode.FileSystemProvider {
     }
 
     private _lookupParentDirectory(uri: vscode.Uri): Directory {
+        console.log("_lookupParentDirectory()");
         const dirname = uri.with({ path: path.posix.dirname(uri.path) });
         return this._lookupAsDirectory(dirname, false);
     }

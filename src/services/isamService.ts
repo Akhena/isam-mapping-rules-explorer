@@ -1,4 +1,4 @@
-import { Environment } from "./middleware/Environment";
+import { Environment } from "../middleware/Environment";
 
 export class IsamService {
     constructor() {
@@ -7,5 +7,10 @@ export class IsamService {
     public getMappingRules(isamEnvironment: Environment): String[] {
         // TODO call ISAM rest api
         return ["myMappingRule.js", "myMappingRule2.js"];
+    }
+
+    public getReverseProxiesList(isamEnvironment: Environment): String[] {
+        // TODO call ISAM rest api
+        return ["myclient.conf", "mypost.conf"];
     }
 }

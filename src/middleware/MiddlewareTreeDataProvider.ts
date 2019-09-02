@@ -15,8 +15,7 @@ export class MiddleWareTreeDataProvider implements vscode.TreeDataProvider<Middl
     
 	public getTreeItem(element: MiddlewareTreeNode): vscode.TreeItem {
         // transforms MiddlewareTreeNode in TreeItem
-        console.log("getTreeItem()");
-        console.log(element);
+        console.log("TreeDataProvider.getTreeItem()");
 		return {
 			resourceUri: element.resource,
 			label: element.resource.path.split("/")[element.resource.path.split("/").length - 1],
@@ -29,8 +28,8 @@ export class MiddleWareTreeDataProvider implements vscode.TreeDataProvider<Middl
 		};
 	}
 	public getChildren(element?: MiddlewareTreeNode): MiddlewareTreeNode[] | Thenable<MiddlewareTreeNode[]> {
-        // executed on first display for generatir root
-        // executed when a treevieyNode is clicked
+        // executed on first display for generating root
+        // executed when a treeviewNode is clicked
 		console.log("TreeDataProvider.GetChildren()");
 		return element ? this.model.getChildren(element) : this.model.roots;
 	}
@@ -38,7 +37,7 @@ export class MiddleWareTreeDataProvider implements vscode.TreeDataProvider<Middl
         /*const parent = element.resource.with({ path: dirname(element.resource.path) });
         return parent.path !== '//' ? { resource: parent, isDirectory: true } : null;*/
 		// TODO CHECK WHY getParent() is used
-		console.log("GetParent()");
+		console.log("TreeDataProvider.GetParent()");
 		return null;
 	}
 }
